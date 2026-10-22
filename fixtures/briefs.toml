@@ -1,0 +1,24 @@
+# Invented briefs for tests. The note title is not needed here: every entry is a brief.
+[[briefs]]
+note_id = "n-v0"
+deal_id = "deal-1"
+created_at = "2026-09-20T09:00:00Z"
+file = "briefs/n-v0.md"
+
+[[briefs]]
+note_id = "n-v1a"
+deal_id = "deal-1"
+created_at = "2026-10-15T09:00:00Z"
+file = "briefs/n-v1a.md"
+
+[[briefs]]
+note_id = "n-v1b"
+deal_id = "deal-1"
+created_at = "2026-10-16T09:00:00Z"
+file = "briefs/n-v1b.md"
+
+[[briefs]]
+note_id = "n-bad"
+deal_id = "deal-1"
+created_at = "2026-10-17T09:00:00Z"
+file = "briefs/n-bad.md"

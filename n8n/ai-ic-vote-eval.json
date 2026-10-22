@@ -1,0 +1,479 @@
+{
+  "name": "AI IC Vote Eval",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "ai-ic-vote-eval",
+        "authentication": "headerAuth",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "b3000001-0000-4000-8000-000000000001",
+      "name": "Webhook: AI IC Vote",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        -1200,
+        352
+      ],
+      "webhookId": "ai-ic-vote-eval",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "YOUR_CREDENTIAL_ID",
+          "name": "AI IC Vote Webhook Auth"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const body = $json.body;\nif (!body || typeof body !== 'object' || Array.isArray(body)) {\n  return [{ json: { valid: false, error: 'The body must be a JSON object' } }];\n}\nif (typeof body.output !== 'string' || !body.output.trim()) {\n  return [{ json: { valid: false, error: 'output must be a non-empty string' } }];\n}\nif (!body.checks || typeof body.checks !== 'object' || Array.isArray(body.checks)) {\n  return [{ json: { valid: false, error: 'checks must be an object' } }];\n}\nreturn [{ json: { valid: true, error: '' } }];"
+      },
+      "id": "b3000001-0000-4000-8000-000000000002",
+      "name": "Validate: Body",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -976,
+        352
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "b3000001-0000-4000-8000-000000000003-cond",
+              "leftValue": "={{ $json.valid }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "b3000001-0000-4000-8000-000000000003",
+      "name": "IF: Body Valid",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        -752,
+        352
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { ok: false, error: $json.error } }}",
+        "options": {
+          "responseCode": 400
+        }
+      },
+      "id": "b3000001-0000-4000-8000-000000000004",
+      "name": "Respond: Bad Request",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        -528,
+        544
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { ok: true, received: true } }}",
+        "options": {
+          "responseCode": 202
+        }
+      },
+      "id": "b3000001-0000-4000-8000-000000000005",
+      "name": "Respond: Accepted",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        -528,
+        352
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.github.com/repos/gregoryrichens/vc-evals/actions/workflows/score-vote.yml/dispatches",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Accept",
+              "value": "application/vnd.github+json"
+            },
+            {
+              "name": "X-GitHub-Api-Version",
+              "value": "2022-11-28"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ { ref: 'main', inputs: { vote: JSON.stringify($('Webhook: AI IC Vote').first().json.body), resume_url: $execution.resumeUrl } } }}",
+        "options": {}
+      },
+      "id": "b3000001-0000-4000-8000-000000000006",
+      "name": "GitHub: Score Vote",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -304,
+        352
+      ],
+      "onError": "continueErrorOutput",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "YOUR_CREDENTIAL_ID",
+          "name": "GitHub - Dispatch Token"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resume": "webhook",
+        "httpMethod": "POST",
+        "authentication": "headerAuth",
+        "options": {
+          "limitWaitTime": true,
+          "limitType": "afterTimeInterval",
+          "resumeAmount": 3,
+          "resumeUnit": "minutes"
+        }
+      },
+      "id": "b3000001-0000-4000-8000-000000000007",
+      "name": "Wait: Eval Result",
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        -80,
+        352
+      ],
+      "webhookId": "b3000001-0000-4000-8000-0000000000b7",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "YOUR_CREDENTIAL_ID",
+          "name": "Eval Result Webhook Auth"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "let b = null;\ntry {\n  b = $('Wait: Eval Result').first().json.body;\n} catch (e) {}\nconst finished = !!b && typeof b === 'object' && Number.isInteger(b.exit_code);\nconst exitCode = finished ? b.exit_code : null;\nconst raw = finished && typeof b.output === 'string' ? b.output.trim() : '';\nconst text = raw.length > 1200 ? raw.slice(0, 1200) + ' ...(trimmed)' : raw;\n// The first table row after the header and separator: | Company | Prompt | Words | Verdict | Conviction | Result | Detail |\nconst row = raw.split('\\n').map(l => l.trim()).filter(l => l.startsWith('|') && !/^\\|[\\s|:-]+\\|?$/.test(l))[1] || '';\nconst cells = row ? row.replace(/^\\|/, '').replace(/\\|\\s*$/, '').split('|').map(c => c.trim()) : [];\nconst company = cells[0] || 'unknown';\nconst prompt = cells[1] || 'unknown';\nconst problems = cells.length > 6 ? cells.slice(6).join(' | ').slice(0, 600) : '';\nreturn [{ json: { finished, failed: finished && exitCode !== 0, exit_code: exitCode, company, prompt, problems, text } }];"
+      },
+      "id": "b3000001-0000-4000-8000-000000000008",
+      "name": "Eval: Read Result",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        144,
+        352
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "b3000001-0000-4000-8000-000000000009-cond",
+              "leftValue": "={{ $json.finished }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "b3000001-0000-4000-8000-000000000009",
+      "name": "IF: Eval Finished",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        368,
+        352
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "b3000001-0000-4000-8000-00000000000a-cond",
+              "leftValue": "={{ $json.failed }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "b3000001-0000-4000-8000-00000000000a",
+      "name": "IF: Eval Failed",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        592,
+        256
+      ]
+    },
+    {
+      "parameters": {
+        "select": "channel",
+        "channelId": {
+          "__rl": true,
+          "value": "YOUR_SLACK_CHANNEL",
+          "mode": "name"
+        },
+        "text": "=AI IC vote failed the eval.\nCompany: {{ $json.company }}\nPrompt version: {{ $json.prompt }}\nProblems: {{ $json.problems || $json.text }}\n\nFull eval output:\n```{{ $json.text }}```",
+        "otherOptions": {}
+      },
+      "id": "b3000001-0000-4000-8000-00000000000b",
+      "name": "Slack: Eval Failed",
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.3,
+      "position": [
+        816,
+        256
+      ],
+      "credentials": {
+        "slackApi": {
+          "id": "YOUR_SLACK_CREDENTIAL_ID",
+          "name": "Slack account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "select": "channel",
+        "channelId": {
+          "__rl": true,
+          "value": "YOUR_SLACK_CHANNEL",
+          "mode": "name"
+        },
+        "text": "=The AI IC vote eval did not finish. The GitHub run was started, but no result came back within 3 minutes. The vote was not checked. Look at the score-vote runs in GitHub Actions.",
+        "otherOptions": {}
+      },
+      "id": "b3000001-0000-4000-8000-00000000000c",
+      "name": "Slack: Eval Did Not Finish",
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.3,
+      "position": [
+        592,
+        448
+      ],
+      "credentials": {
+        "slackApi": {
+          "id": "YOUR_SLACK_CREDENTIAL_ID",
+          "name": "Slack account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "select": "channel",
+        "channelId": {
+          "__rl": true,
+          "value": "YOUR_SLACK_CHANNEL",
+          "mode": "name"
+        },
+        "text": "=The AI IC vote eval could not start. The GitHub dispatch for score-vote.yml returned an error, so the vote was not checked. Error: {{ ($json.error && ($json.error.message || $json.error)) || 'unknown' }}",
+        "otherOptions": {}
+      },
+      "id": "b3000001-0000-4000-8000-00000000000d",
+      "name": "Slack: Eval Could Not Start",
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.3,
+      "position": [
+        -80,
+        592
+      ],
+      "credentials": {
+        "slackApi": {
+          "id": "YOUR_SLACK_CREDENTIAL_ID",
+          "name": "Slack account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "content": "## AI IC vote eval\nThe AI IC project posts its vote and ratings here. n8n answers 202 at once, then GitHub Actions (score-vote.yml) runs the eval and posts the result back to the Wait node. Only failures go to Slack. A vote that passes posts nothing.\n\n**Credentials to create (by name):**\n1. `AI IC Vote Webhook Auth` (Header Auth: header `X-Eval-Token`) on the Webhook node. The skill sends this value.\n2. `Eval Result Webhook Auth` (Header Auth: header `X-Eval-Token`) on the Wait node. Use the same value as the GitHub secret `EVAL_RESULT_WEBHOOK_TOKEN`.\n3. `GitHub - Dispatch Token` (Header Auth: `Authorization` = `Bearer <token>`, permission to run workflows on the repo) on `GitHub: Score Vote`.\n4. `Slack account` (Slack API) on the three Slack nodes, and set the channel in each.\n\n**Import steps:**\n1. Import this file and attach each credential above.\n2. Set `YOUR_SLACK_CHANNEL` in the three Slack nodes.\n3. Activate the workflow and put its production webhook URL in the skill.\n\n**Timeout:** the Wait node runs for 3 minutes. When the limit is reached, n8n resumes the run on the normal output with no body. `Eval: Read Result` sees no `exit_code`, and `IF: Eval Finished` sends the run to `Slack: Eval Did Not Finish`.",
+        "width": 640,
+        "height": 560
+      },
+      "id": "b3000001-0000-4000-8000-00000000000e",
+      "name": "Sticky Note: Setup",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -1200,
+        80
+      ]
+    }
+  ],
+  "connections": {
+    "Webhook: AI IC Vote": {
+      "main": [
+        [
+          {
+            "node": "Validate: Body",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validate: Body": {
+      "main": [
+        [
+          {
+            "node": "IF: Body Valid",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF: Body Valid": {
+      "main": [
+        [
+          {
+            "node": "Respond: Accepted",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Respond: Bad Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Respond: Accepted": {
+      "main": [
+        [
+          {
+            "node": "GitHub: Score Vote",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "GitHub: Score Vote": {
+      "main": [
+        [
+          {
+            "node": "Wait: Eval Result",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Slack: Eval Could Not Start",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait: Eval Result": {
+      "main": [
+        [
+          {
+            "node": "Eval: Read Result",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Eval: Read Result": {
+      "main": [
+        [
+          {
+            "node": "IF: Eval Finished",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF: Eval Finished": {
+      "main": [
+        [
+          {
+            "node": "IF: Eval Failed",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Slack: Eval Did Not Finish",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF: Eval Failed": {
+      "main": [
+        [
+          {
+            "node": "Slack: Eval Failed",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        []
+      ]
+    }
+  },
+  "pinData": {},
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "meta": {
+    "templateCredsSetupCompleted": false
+  }
+}

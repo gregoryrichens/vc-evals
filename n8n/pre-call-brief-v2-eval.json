@@ -1,0 +1,543 @@
+{
+  "name": "Pre-call Brief v2 (with eval)",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "founder-call-brief",
+        "authentication": "headerAuth",
+        "options": {}
+      },
+      "id": "a1000001-0000-4000-8000-000000000001",
+      "name": "Webhook: Founder Call Brief",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        -2224,
+        352
+      ],
+      "webhookId": "founder-call-brief",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "YOUR_CREDENTIAL_ID",
+          "name": "Founder Call Brief Webhook Auth"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "cfg-framework",
+              "name": "FRAMEWORK",
+              "value": "=# VC Pre-Call Brief — System Prompt\n\nYou are preparing a venture partner for a founder call by writing a short, factual summary of a company.\n\nWrite for an intelligent generalist investor who may know nothing about this company’s technical domain before reading the brief.\n\nUse plain English. Do not assume familiarity with technical acronyms, specialist terminology, industry shorthand, or the underlying technology.\n\nYou have access to:\n\n* the relevant Deal and associated Company via Attio MCP\n* the company’s Google Drive via MCP\n* Web Search via Tavily tool calls\n\nThe Attio Deal ID: `{{ $('Webhook: Founder Call Brief').item.json.body.dealId }}`.\n\n## Your objective\nUSE AS FEW TURNS AS POSSIBLE TO:\n- outline relevant facts of the business\n- identify lynchpins for the venture's success\n- ensure intelligent partner understanding\n\n## Tool and retrieval rules\n\nUse the fewest tool calls needed to satisfy the evidence requirements below. Independent sources do not require independent searches: one result set may satisfy multiple checks.\n\n### Attio\n\nUse Attio only to retrieve the triggering Deal, associated Company, domain, founders, linked Drive/deck locations, and relevant Deal context.\n\n* Normally ≤3 Attio calls.\n* Do not browse unrelated records, notes, emails, or meetings.\n* Reuse retrieved information.\n\n### Google Drive\n\nTreat the Drive location linked from the Deal as the primary company source.\n\nInspect filenames, types, and metadata before reading files. Select the smallest useful document set. Prioritize:\n1. deck\n2. memo/white paper\n\n* Normally ≤3 Drive calls and 1-3 substantive documents.\n* Do not read duplicates or irrelevant files.\n* For long documents, retrieve only relevant sections when supported.\n\n### Web Search (Tavily)\n\nUse Web Search for external discovery and verification.\n\n* Normally ≤8 searches for the entire brief.\n* Prefer searches that answer several related questions or surface multiple independent sources.\n* Once evidence adequately establishes a material fact or answers a question, stop.\n* If a material question remains unresolved after a reasonable targeted attempt, tag it [not found] and move on.\n\nStop using tools once you can accurately complete the required sections.\n\n## Use the Areas Below to Frame Your Research/The Brief.\n> The questions in each section show its intent. They are not exhaustive.\n> The line you must hold: state facts and structure. No verdicts, praise, or concern. Never explain or defend the brief's own conclusions. Never infer or estimate a metric.\n\n### What is it?\n* What product(s)/service(s) does this company build? (In plain English)\n* What are the 2–3 dependencies, assumptions, or structural facts most determinative of the outcome?\n\n### Founders\n\n* Which of their experiences or credentials are uncommon and directly relevant to what they are building? State each as a fact.\n* Which can be verified, and where?\n\n### Market\n\n* What is the market? Does the company's assessment of its market square with independent sources?\n* Who currently pays for this or a cognate and what do they pay?\n* Are there verifiable tailwinds to market growth?\n* What is the stated secret or advantage that will allow the company to win the category?\n\n### Competitors\n\n* What is the problem this company solves?\n* Who else solves the problem? What is their status? Or how is this problem solved today? \n* Does company material omit or understate competition?\n\n### Follow Up\n* Pursuant to the above sections, what are the 3-4 questions worth digging on in a call with the team? \n\n## Output\nReturn only the final Markdown brief, ending with the Inputs section.\n\nMaximum 800 words based materials and areas outlined above, not counting the Inputs section.\n\nMarkdown only: level 2–3 headings, bold, italic, lists, and links. No tables.\n\n### Inputs\n> End the brief with a final section in exactly this form, as markdown with no code block:\n\n### Inputs\nDeck: <file name or link of the deck you read, or \"none\">\nOther Company Materials: <file name or link of the memo, white paper, etc. you read, or \"none\">\nWeb: <url>\nWeb: <url>\nPrompt: brief_v1\nModel: claude-sonnet-5",
+              "type": "string"
+            },
+            {
+              "id": "cfg-max-iterations",
+              "name": "MAX_ITERATIONS",
+              "value": 20,
+              "type": "number"
+            },
+            {
+              "id": "cfg-brief-status-slug",
+              "name": "ATTIO_SLUG_BRIEF_STATUS",
+              "value": "brief_status",
+              "type": "string"
+            },
+            {
+              "id": "cfg-generated-status",
+              "name": "BRIEF_GENERATED_STATUS",
+              "value": "Generated",
+              "type": "string"
+            }
+          ]
+        },
+        "includeOtherFields": true,
+        "options": {}
+      },
+      "id": "a1000001-0000-4000-8000-000000000002",
+      "name": "Config",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -1856,
+        352
+      ]
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Research the Attio Deal with ID:\n{{ $('Webhook: Founder Call Brief').item.json.body.dealId }}\n\nComplete the Founder Call Brief according to the system instructions.\n\nReturn only the completed brief in Markdown.",
+        "options": {
+          "systemMessage": "={{ $('Config').item.json.FRAMEWORK }}",
+          "maxIterations": "={{ $('Config').item.json.MAX_ITERATIONS }}",
+          "returnIntermediateSteps": true
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        -1680,
+        352
+      ],
+      "id": "a1000001-0000-4000-8000-000000000003",
+      "name": "AI Agent: Founder Call Brief"
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "value": "claude-sonnet-5",
+          "mode": "list",
+          "cachedResultName": "Claude Sonnet 5"
+        },
+        "options": {
+          "maxTokensToSample": 10000,
+          "temperature": 0.2,
+          "promptCaching": "5m"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatAnthropic",
+      "typeVersion": 1.6,
+      "position": [
+        -1776,
+        688
+      ],
+      "id": "a1000001-0000-4000-8000-000000000004",
+      "name": "Anthropic Chat Model",
+      "credentials": {
+        "anthropicApi": {
+          "id": "YOUR_CREDENTIAL_ID",
+          "name": "Anthropic account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const output = $json.output ?? $json.text ?? $json.response ?? '';\n\nif (typeof output !== 'string' || !output.trim()) {\n  throw new Error('AI Agent returned no final brief. Inspect the AI Agent execution and its tool calls.');\n}\n\nreturn [{\n  json: {\n    brief: output.trim()\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -1392,
+        352
+      ],
+      "id": "a1000001-0000-4000-8000-000000000005",
+      "name": "Extract: Brief"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.attio.com/v2/notes",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{\n(() => {\n  const md = $('Eval: Build Note').first().json.content;\n  const dealId = $node[\"Webhook: Founder Call Brief\"].json.body.dealId;\n  const today = new Date().toISOString().slice(0, 10);\n\n  return {\n    data: {\n      parent_object: \"deals\",\n      parent_record_id: dealId,\n      title: \"Founder Call Brief — \" + today,\n      format: \"markdown\",\n      content: md\n    }\n  };\n})()\n}}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -496,
+        352
+      ],
+      "id": "a1000001-0000-4000-8000-000000000006",
+      "name": "Attio: Create Brief Note",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "YOUR_CREDENTIAL_ID",
+          "name": "Attio - Pre-call Brief Token"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "PATCH",
+        "url": "=https://api.attio.com/v2/objects/deals/records/{{ $node[\"Webhook: Founder Call Brief\"].json.body.dealId }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{\n{\n  data: {\n    values: {\n      [$node[\"Config\"].json.ATTIO_SLUG_BRIEF_STATUS]: [\n        { option: $node[\"Config\"].json.BRIEF_GENERATED_STATUS }\n      ]\n    }\n  }\n}\n}}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -272,
+        352
+      ],
+      "id": "a1000001-0000-4000-8000-000000000007",
+      "name": "Attio: Set Brief Status",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "YOUR_CREDENTIAL_ID",
+          "name": "Attio - Pre-call Brief Token"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "endpointUrl": "https://drivemcp.googleapis.com/mcp/v1",
+        "authentication": "mcpOAuth2Api",
+        "include": "selected",
+        "includeTools": [
+          "search_files",
+          "get_file_metadata",
+          "read_file_content"
+        ],
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.mcpClientTool",
+      "typeVersion": 1.4,
+      "position": [
+        -1488,
+        688
+      ],
+      "id": "a1000001-0000-4000-8000-000000000008",
+      "name": "Google Drive MCP",
+      "credentials": {
+        "mcpOAuth2Api": {
+          "id": "YOUR_CREDENTIAL_ID",
+          "name": "GoogleDrive MCP Credential"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "endpointUrl": "https://mcp.attio.com/mcp",
+        "authentication": "mcpOAuth2Api",
+        "include": "selected",
+        "includeTools": [
+          "search-records",
+          "get-records-by-ids",
+          "list-attribute-definitions"
+        ],
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.mcpClientTool",
+      "typeVersion": 1.4,
+      "position": [
+        -1632,
+        688
+      ],
+      "id": "a1000001-0000-4000-8000-000000000009",
+      "name": "Attio MCP Server",
+      "credentials": {
+        "mcpOAuth2Api": {
+          "id": "YOUR_CREDENTIAL_ID",
+          "name": "Attio MCP Credential"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "query": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Query', ``, 'string') }}",
+        "options": {
+          "search_depth": "basic",
+          "max_results": 5,
+          "include_raw_content": false
+        }
+      },
+      "type": "@tavily/n8n-nodes-tavily.tavilyTool",
+      "typeVersion": 1,
+      "position": [
+        -1328,
+        688
+      ],
+      "id": "a1000001-0000-4000-8000-000000000010",
+      "name": "Tavily Search",
+      "credentials": {
+        "tavilyApi": {
+          "id": "YOUR_CREDENTIAL_ID",
+          "name": "Tavily account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "descriptionType": "manual",
+        "toolDescription": "Retrieve fuller content from specific web URLs already identified through Web Search. Use only when Search does not provide enough content to verify an important claim, when exact context from a primary source matters, or when a specific source needs deeper examination. Do not routinely extract search results.",
+        "resource": "extract",
+        "urls": [
+          "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('urls0_URLs', ``, 'string') }}"
+        ],
+        "options": {
+          "query": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Query', `The specific information to extract from the provided URL. Describe only the facts or context needed to resolve the current research question.`, 'string') }}",
+          "chunks_per_source": 2,
+          "include_images": false,
+          "extract_depth": "basic",
+          "format": "markdown",
+          "include_favicon": false
+        }
+      },
+      "type": "@tavily/n8n-nodes-tavily.tavilyTool",
+      "typeVersion": 1,
+      "position": [
+        -1328,
+        848
+      ],
+      "id": "a1000001-0000-4000-8000-000000000011",
+      "name": "Tavily Extract",
+      "credentials": {
+        "tavilyApi": {
+          "id": "YOUR_CREDENTIAL_ID",
+          "name": "Tavily account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.github.com/repos/gregoryrichens/vc-evals/actions/workflows/score-brief.yml/dispatches",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Accept",
+              "value": "application/vnd.github+json"
+            },
+            {
+              "name": "X-GitHub-Api-Version",
+              "value": "2022-11-28"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ { ref: 'main', inputs: { brief: $('Extract: Brief').first().json.brief, resume_url: $execution.resumeUrl } } }}",
+        "options": {}
+      },
+      "id": "a2000001-0000-4000-8000-000000000001",
+      "name": "GitHub: Score Brief",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -1168,
+        352
+      ],
+      "onError": "continueErrorOutput",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "YOUR_CREDENTIAL_ID",
+          "name": "GitHub - Dispatch Token"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resume": "webhook",
+        "httpMethod": "POST",
+        "authentication": "headerAuth",
+        "options": {
+          "limitWaitTime": true,
+          "limitType": "afterTimeInterval",
+          "resumeAmount": 3,
+          "resumeUnit": "minutes"
+        }
+      },
+      "id": "a2000001-0000-4000-8000-000000000002",
+      "name": "Wait: Eval Result",
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        -944,
+        352
+      ],
+      "webhookId": "a2000001-0000-4000-8000-0000000000a2",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "YOUR_CREDENTIAL_ID",
+          "name": "Eval Result Webhook Auth"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const brief = $('Extract: Brief').first().json.brief;\nlet b = null;\ntry {\n  b = $('Wait: Eval Result').first().json.body;\n} catch (e) {}\nconst output = b && b.ok === true && typeof b.output === 'string' ? b.output.trim() : '';\nconst content = output\n  ? brief + '\\n\\n---\\n\\n## Eval result\\n\\n```\\n' + output + '\\n```'\n  : brief;\nreturn [{ json: { content } }];"
+      },
+      "id": "a2000001-0000-4000-8000-000000000003",
+      "name": "Eval: Build Note",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -720,
+        352
+      ]
+    },
+    {
+      "parameters": {
+        "content": "## Eval before the note\n1. The brief goes to the vc-evals scorer on GitHub (score-brief.yml).\n2. This run waits up to 3 minutes for the result.\n3. The note is the brief plus the result. If GitHub fails or is slow, the note is still written with the brief alone. Nothing is added.",
+        "width": 560,
+        "height": 170
+      },
+      "id": "a2000001-0000-4000-8000-000000000004",
+      "name": "Sticky Note: Eval",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -1168,
+        120
+      ]
+    }
+  ],
+  "connections": {
+    "Webhook: Founder Call Brief": {
+      "main": [
+        [
+          {
+            "node": "Config",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Config": {
+      "main": [
+        [
+          {
+            "node": "AI Agent: Founder Call Brief",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent: Founder Call Brief": {
+      "main": [
+        [
+          {
+            "node": "Extract: Brief",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Anthropic Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent: Founder Call Brief",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract: Brief": {
+      "main": [
+        [
+          {
+            "node": "GitHub: Score Brief",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Attio: Create Brief Note": {
+      "main": [
+        [
+          {
+            "node": "Attio: Set Brief Status",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Drive MCP": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent: Founder Call Brief",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Attio MCP Server": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent: Founder Call Brief",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Tavily Search": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent: Founder Call Brief",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Tavily Extract": {
+      "ai_tool": [
+        []
+      ]
+    },
+    "GitHub: Score Brief": {
+      "main": [
+        [
+          {
+            "node": "Wait: Eval Result",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Eval: Build Note",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait: Eval Result": {
+      "main": [
+        [
+          {
+            "node": "Eval: Build Note",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Eval: Build Note": {
+      "main": [
+        [
+          {
+            "node": "Attio: Create Brief Note",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "meta": {
+    "templateCredsSetupCompleted": false
+  }
+}

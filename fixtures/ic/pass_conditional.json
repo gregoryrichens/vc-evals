@@ -1,0 +1,19 @@
+{
+  "output": "Northwind Pottery Labs / Seed / SAFE / $1.2M / $12M\n\nVERDICT: CONDITIONAL\n\nCONVICTION: 2\n\nTHESIS IN ONE SENTENCE: A kiln maker with one pilot could return the fund if two open facts close.\n\nSTRONGEST CASE AGAINST MY OWN VOTE: The opposing case rests on one signed pilot and a founder who shipped fast, but both are thinner than the evidence for my position.\n\nRATIONALE:\n- Structure / integrity gate: No integrity check failed. The founders work full time on the company and the intellectual property is theirs.\n- Fund-returner math + year-10 picture: A $100K cheque at $12M post-money buys about 0.8% and about 0.3% after dilution, so the required exit is very large. The company would need to sell kilns to many studios at a high price.\n- Four Forces: Market and timing is Adequate because a dated rule change raises demand. In March of last year the regional environmental agency tightened the emissions limits for electric and gas kilns, and many small studios now face a deadline to replace old equipment. The deck shows kiln enquiries rising since that date, and a partner saw the dated notice and the enquiry log. Secret and monopoly is Adequate because the team targets one niche first. Community pottery studios are a small market that larger kiln makers ignore, and the founders hold a pending design for an even heat chamber that cuts firing time. The team shipped two working prototypes to studios, and the studio owners described the same firing problem without prompting. Founders is Adequate on first-hand partner notes. A partner met both founders twice and saw one build a working controller in a single afternoon. One has ten years of ceramics production and the other has run hardware sales. They have answered every diligence question directly and with documents. Capital efficiency is Not visible because no build cost was shared. The deck gives a selling price of about $6,100 per kiln, but the founders did not say what a kiln costs to build or how much of the first $400K is spent, so the margin and the time before the next round cannot be judged.\n- The few decisive facts: The pilot invoice was seen in the data room (OBSERVED). The sales target for next year is stated in the deck (CLAIMED). The founder shipped a prototype in thirty days (OBSERVED).\n- Why CONDITIONAL: Two conditions. First, a second signed pilot, closed by seeing the contract. Second, a full-time date for the second founder, closed by a signed letter. If either fails the vote becomes NO.\n- Material things I could not see: The customer contracts, the cap table, and any reference call with a second customer.",
+  "checks": {
+    "integrity": {
+      "full_time_founders": "PASS",
+      "clean_ip": "PASS",
+      "no_litigation": "PASS",
+      "no_criminal_association": "PASS",
+      "round_mechanics": "PASS"
+    },
+    "forces": {
+      "market_timing": "Adequate",
+      "secret_monopoly": "Adequate",
+      "founders": "Adequate",
+      "capital_efficiency": "Not visible"
+    },
+    "exit_pathway": "credible"
+  }
+}

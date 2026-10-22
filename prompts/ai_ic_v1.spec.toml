@@ -1,0 +1,175 @@
+# ai_ic_v1.spec.toml
+#
+# What this file is: a description of what a vote made by the AI IC member
+# (project instructions prompts/ai_ic_v1.md) must look like. The vc-evals
+# harness reads it in `vc-evals ic`. It is not read by n8n or by the model.
+#
+# If you change the project instructions in a way that changes the output
+# format, the payload or the gates, change this file to match.
+#
+# A version is chosen by time: the spec with the latest `go_live` at or before
+# the time of the check. For `ic --stdin` the time is now.
+
+version = "ai_ic_v1"
+go_live = "2026-10-21T20:57:00-06:00"
+
+# ---------------------------------------------------------------------------
+# Payload. JSON object sent by the project: the vote text plus the ratings the
+# project recorded in its Steps 2 to 5.
+# ---------------------------------------------------------------------------
+[payload]
+output_key = "output"
+checks_key = "checks"
+
+[payload.integrity]
+key = "integrity"
+checks = [
+  "full_time_founders",
+  "clean_ip",
+  "no_litigation",
+  "no_criminal_association",
+  "round_mechanics",
+]
+values = ["PASS", "FAIL", "NOT VISIBLE"]
+
+[payload.forces]
+key = "forces"
+names = ["market_timing", "secret_monopoly", "founders", "capital_efficiency"]
+values = ["Not visible", "Weak", "Adequate", "Exceptional"]
+
+[payload.exit_pathway]
+key = "exit_pathway"
+values = ["credible", "not credible"]
+
+# ---------------------------------------------------------------------------
+# Vote text format (Step 8 of the project instructions).
+# ---------------------------------------------------------------------------
+[format]
+min_words = 400
+max_words = 700
+
+# The first line: these five values, in order, separated by `header_separator`.
+header_fields = ["COMPANY", "ROUND", "INSTRUMENT", "ASK", "POST-MONEY"]
+header_separator = " / "
+
+# Label lines, in order. `allowed` is the exact set of values. `inline` = false
+# means the value is the lines that follow (the bullets) and not text after the colon.
+[[format.labels]]
+name = "VERDICT"
+allowed = ["YES", "NO", "CONDITIONAL"]
+
+[[format.labels]]
+name = "CONVICTION"
+allowed = ["1", "2", "3"]
+
+[[format.labels]]
+name = "THESIS IN ONE SENTENCE"
+
+[[format.labels]]
+name = "STRONGEST CASE AGAINST MY OWN VOTE"
+
+[[format.labels]]
+name = "RATIONALE"
+inline = false
+
+# The bullets under RATIONALE, in order. Each starts with its name or an alias
+# (upper and lower case ignored) and has text after it. `require_any` lists tags
+# of which the bullet needs at least one.
+[[format.bullets]]
+name = "Structure / integrity gate"
+aliases = []
+
+[[format.bullets]]
+name = "Fund-returner math + year-10 picture"
+aliases = ["Fund-returner math"]
+
+[[format.bullets]]
+name = "Four Forces"
+aliases = []
+
+[[format.bullets]]
+name = "The few decisive facts"
+aliases = ["Decisive facts"]
+require_any = ["OBSERVED", "CLAIMED"]
+
+[[format.bullets]]
+name = "Why Yes / No / Conditional"
+aliases = ["Why YES", "Why NO", "Why CONDITIONAL", "Why Yes", "Why No", "Why Conditional"]
+
+[[format.bullets]]
+name = "Material things I could not see"
+aliases = []
+
+# A vote with this verdict must contain at least one of these phrases
+# (upper and lower case ignored).
+[[format.verdict_phrases]]
+verdict = "NO"
+any_of = ["no, now", "no, ever"]
+
+# Patterns the vote text must not contain (regular expressions).
+[[format.forbidden]]
+pattern = '\bG[1-7]\b'
+description = "a gate code (G1 to G7)"
+
+[[format.forbidden]]
+pattern = '(?i)\bgate\s*[1-7]\b'
+description = "a gate number (Gate 1 to Gate 7)"
+
+# ---------------------------------------------------------------------------
+# Gates (Step 5). A gate trips when its `when` condition holds. A tripped gate
+# allows only the verdicts in `allows`. A vote fails if its VERDICT is not
+# allowed by every tripped gate (the stricter gate wins).
+#
+# Condition vocabulary. A condition is a table with one of these forms:
+#   { force = "<name>", is = [<values>] }       that force has one of the values
+#   { integrity = "any", is = [<values>] }      at least one integrity check has one of the values
+#   { integrity = "all", is = [<values>] }      every integrity check has one of the values
+#   { integrity = "<check>", is = [<values>] }  that integrity check has one of the values
+#   { exit_pathway = "<value>" }                exit_pathway equals the value
+#   { count_forces = true, is = [<values>], at_least = N }   at least N forces have one of the values
+#   { count_forces = true, is = [<values>], at_most = N }    at most N forces have one of the values
+#   { all = [<conditions>] }                    every condition holds
+#   { any = [<conditions>] }                    at least one condition holds
+#   { not = <condition> }                       the condition does not hold
+# ---------------------------------------------------------------------------
+[[gates]]
+id = "G1"
+description = "an integrity check failed"
+when = { integrity = "any", is = ["FAIL"] }
+allows = ["NO"]
+
+[[gates]]
+id = "G2"
+description = "there is no credible, order-of-magnitude pathway to the required exit"
+when = { exit_pathway = "not credible" }
+allows = ["NO"]
+
+[[gates]]
+id = "G3"
+description = "Founders is Weak or Not visible"
+when = { force = "founders", is = ["Weak", "Not visible"] }
+allows = ["NO"]
+
+[[gates]]
+id = "G4"
+description = "neither Market & Timing nor Secret/Monopoly is Adequate or Exceptional"
+when = { all = [{ not = { force = "market_timing", is = ["Adequate", "Exceptional"] } }, { not = { force = "secret_monopoly", is = ["Adequate", "Exceptional"] } }] }
+allows = ["NO"]
+
+[[gates]]
+id = "G5"
+description = "Market & Timing or Secret/Monopoly is Weak and Founders is not Exceptional"
+when = { all = [{ any = [{ force = "market_timing", is = ["Weak"] }, { force = "secret_monopoly", is = ["Weak"] }] }, { not = { force = "founders", is = ["Exceptional"] } }] }
+allows = ["NO"]
+
+[[gates]]
+id = "G6"
+description = "two or more forces are Not visible and no force is Exceptional"
+when = { all = [{ count_forces = true, is = ["Not visible"], at_least = 2 }, { not = { count_forces = true, is = ["Exceptional"], at_least = 1 } }] }
+allows = ["NO"]
+
+[[gates]]
+id = "G7"
+description = "two or more forces are Not visible"
+when = { count_forces = true, is = ["Not visible"], at_least = 2 }
+allows = ["NO", "CONDITIONAL"]

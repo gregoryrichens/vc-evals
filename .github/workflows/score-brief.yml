@@ -1,0 +1,66 @@
+name: Score brief
+
+on:
+  workflow_dispatch:
+    inputs:
+      brief:
+        description: The brief text to score
+        required: true
+        type: string
+      resume_url:
+        description: The n8n URL to send the result to
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  score:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+      - run: uv sync
+      - name: Score the brief and send the result to n8n
+        id: score
+        env:
+          BRIEF: ${{ inputs.brief }}
+          RESUME_URL: ${{ inputs.resume_url }}
+          RESULT_TOKEN: ${{ secrets.EVAL_RESULT_WEBHOOK_TOKEN }}
+        run: |
+          set +e
+          if [ -z "$(printf '%s' "$BRIEF" | tr -d '[:space:]')" ]; then
+            echo "The brief is empty" > err.txt
+            : > result.txt
+            code=2
+          else
+            printf '%s' "$BRIEF" | uv run vc-evals score --stdin > result.txt 2> err.txt
+            code=$?
+          fi
+          set -e
+          cat result.txt
+          cat err.txt >&2
+          ok=false
+          if { [ "$code" -eq 0 ] || [ "$code" -eq 1 ]; } && [ -s result.txt ] && ! grep -q "Traceback" err.txt; then
+            ok=true
+          fi
+          jq -n --argjson ok "$ok" --argjson exit_code "$code" --rawfile output result.txt \
+            '{ok: $ok, exit_code: $exit_code, output: $output}' \
+            | curl -sS --fail -X POST "$RESUME_URL" \
+                -H "X-Eval-Token: $RESULT_TOKEN" \
+                -H "Content-Type: application/json" \
+                --data-binary @- \
+            || echo "Could not send the result to n8n"
+          exit $code
+      - name: Tell n8n the eval did not run
+        if: failure() && steps.score.outcome == 'skipped'
+        env:
+          RESUME_URL: ${{ inputs.resume_url }}
+          RESULT_TOKEN: ${{ secrets.EVAL_RESULT_WEBHOOK_TOKEN }}
+        run: |
+          curl -sS --fail -X POST "$RESUME_URL" \
+            -H "X-Eval-Token: $RESULT_TOKEN" \
+            -H "Content-Type: application/json" \
+            -d '{"ok": false}' \
+            || echo "Could not send the result to n8n"

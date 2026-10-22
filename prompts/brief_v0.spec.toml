@@ -1,0 +1,19 @@
+# What prompts/brief_v0.md asks a brief to contain. Layer 1 (template conformance) only.
+
+version = "brief_v0"
+go_live = "2026-09-01T12:00:00-06:00"
+
+# Required level 2-3 headings, in this order. The prompt writes them as "Name — description".
+headings = [
+  "What it is",
+  "What the business rests on",
+  "Market",
+  "Competitors",
+  "What’s actually real",
+  "Team",
+  "Worth digging into",
+]
+
+[limits]
+max_words = 800          # "Maximum 800 words".
+tables_allowed = false   # "No tables."

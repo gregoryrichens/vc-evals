@@ -1,0 +1,90 @@
+# brief_v1.spec.toml
+#
+# What this file is: a description of what a brief made with the brief_v1 prompt
+# must look like. The vc-evals harness reads it to check each brief. It is not
+# read by n8n or by the model. Put it in the repo at prompts/brief_v1.spec.toml.
+#
+# If you change the prompt in a way that changes the headings or the Inputs
+# lines, change this file to match. Deviations are reported by the harness.
+# The harness does not fix them.
+
+version = "brief_v1"
+go_live = "2026-10-14T12:00:00-06:00"
+
+# ---------------------------------------------------------------------------
+# Headings. The brief must have each of these sections, and each must have text.
+# A heading matches if its text equals the name or one of the aliases, ignoring
+# upper and lower case and the characters "?" and "-". Level 2 or 3 is accepted.
+# ---------------------------------------------------------------------------
+[[sections]]
+name = "What is it?"
+aliases = []
+required = true
+
+[[sections]]
+name = "Founders"
+aliases = []
+required = true
+
+[[sections]]
+name = "Market"
+aliases = []
+required = true
+
+[[sections]]
+name = "Competitors"
+aliases = []
+required = true
+
+[[sections]]
+name = "Follow Up"
+# The model has also written these in past runs.
+aliases = ["Follow-Up Questions", "Follow Up Questions"]
+required = true
+
+# ---------------------------------------------------------------------------
+# The Inputs section. It is the last section of the brief. Each line has the
+# form "Label: value". The lines are plain text: no code block, no bullet marks.
+# ---------------------------------------------------------------------------
+[inputs]
+heading = "Inputs"
+
+[[inputs.lines]]
+label = "Deck"
+required = true
+repeatable = false
+
+[[inputs.lines]]
+label = "Other Company Materials"
+required = true
+repeatable = false
+
+[[inputs.lines]]
+label = "Web"
+# Zero or more lines. Each value must be a URL that starts with http:// or https://.
+required = false
+repeatable = true
+value_type = "url"
+
+[[inputs.lines]]
+label = "Prompt"
+required = true
+repeatable = false
+# The value must equal this text exactly.
+must_equal = "brief_v1"
+
+[[inputs.lines]]
+label = "Model"
+required = true
+repeatable = false
+# The model writes this value itself, so the harness does
+# not trust it. The real model is the setting in the n8n agent node.
+
+# ---------------------------------------------------------------------------
+# Output rules from the "Output" section of the prompt.
+# ---------------------------------------------------------------------------
+[output]
+# Maximum words in the brief, not counting the Inputs section.
+max_words = 800
+allowed_heading_levels = [1, 2, 3]
+allow_tables = false

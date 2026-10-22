@@ -1,0 +1,66 @@
+name: Score vote
+
+on:
+  workflow_dispatch:
+    inputs:
+      vote:
+        description: The vote payload (JSON text) to score
+        required: true
+        type: string
+      resume_url:
+        description: The n8n URL to send the result to
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  score:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+      - run: uv sync
+      - name: Score the vote and send the result to n8n
+        id: score
+        env:
+          VOTE: ${{ inputs.vote }}
+          RESUME_URL: ${{ inputs.resume_url }}
+          RESULT_TOKEN: ${{ secrets.EVAL_RESULT_WEBHOOK_TOKEN }}
+          PYTHONWARNINGS: ignore::SyntaxWarning  # pysbd prints these on first import
+        run: |
+          set +e
+          if [ -z "$(printf '%s' "$VOTE" | tr -d '[:space:]')" ]; then
+            echo "The vote is empty" > err.txt
+            : > result.txt
+            code=2
+          else
+            printf '%s' "$VOTE" | uv run vc-evals ic --stdin > result.txt 2> err.txt
+            code=$?
+          fi
+          set -e
+          cat result.txt
+          cat err.txt >&2
+          # n8n gets the table from stdout, plus anything written to stderr.
+          cat result.txt err.txt > output.txt
+          # An exit code of 1 is a failed vote, and it is sent to n8n like any other result.
+          jq -n --argjson exit_code "$code" --rawfile output output.txt \
+            '{exit_code: $exit_code, output: $output}' \
+            | curl -sS --fail -X POST "$RESUME_URL" \
+                -H "X-Eval-Token: $RESULT_TOKEN" \
+                -H "Content-Type: application/json" \
+                --data-binary @- \
+            || echo "Could not send the result to n8n"
+          exit $code
+      - name: Tell n8n the eval did not run
+        if: failure() && steps.score.outcome == 'skipped'
+        env:
+          RESUME_URL: ${{ inputs.resume_url }}
+          RESULT_TOKEN: ${{ secrets.EVAL_RESULT_WEBHOOK_TOKEN }}
+        run: |
+          curl -sS --fail -X POST "$RESUME_URL" \
+            -H "X-Eval-Token: $RESULT_TOKEN" \
+            -H "Content-Type: application/json" \
+            -d '{"exit_code": 2, "output": "The eval did not run: a setup step failed"}' \
+            || echo "Could not send the result to n8n"

@@ -1,0 +1,59 @@
+# Invented spec for tests. Not the real brief_v1.spec.toml.
+version = "brief_v1"
+go_live = 2026-10-14
+
+[[sections]]
+name = "What is it?"
+required = true
+
+[[sections]]
+name = "Founders"
+required = true
+
+[[sections]]
+name = "Market"
+required = true
+
+[[sections]]
+name = "Competitors"
+required = true
+
+[[sections]]
+name = "Follow Up"
+aliases = ["Follow-Up Questions", "Follow Up Questions"]
+required = true
+
+[inputs]
+heading = "Inputs"
+
+[[inputs.lines]]
+label = "Deck"
+required = true
+repeatable = false
+
+[[inputs.lines]]
+label = "Other Company Materials"
+required = true
+repeatable = false
+
+[[inputs.lines]]
+label = "Web"
+required = false
+repeatable = true
+value_type = "url"
+
+[[inputs.lines]]
+label = "Prompt"
+required = true
+repeatable = false
+must_equal = "brief_v1"
+
+[[inputs.lines]]
+label = "Model"
+required = true
+repeatable = false
+
+[output]
+max_words = 60
+allowed_heading_levels = [1, 2, 3]
+allow_tables = false
